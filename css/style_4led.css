@@ -1,0 +1,308 @@
+/* Styling untuk versi 4 LED */
+
+/* Switch Toggle */
+.switch-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 15px;
+}
+
+.switch-label {
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider-switch {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: 0.4s;
+    border-radius: 34px;
+}
+
+.slider-switch:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: 0.4s;
+    border-radius: 50%;
+}
+
+.switch input:checked + .slider-switch {
+    background-color: var(--success-color);
+}
+
+.switch input:focus + .slider-switch {
+    box-shadow: 0 0 1px var(--success-color);
+}
+
+.switch input:checked + .slider-switch:before {
+    transform: translateX(26px);
+}
+
+.switch input:disabled + .slider-switch {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Grid untuk 4 LED */
+.leds-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.led-card {
+    background: var(--card-bg);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    text-align: center;
+}
+
+.led-card h4 {
+    margin-bottom: 15px;
+    color: var(--text-color);
+}
+
+.led-status-indicator {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    margin: 0 auto 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+}
+
+.led-status-indicator.on {
+    background: radial-gradient(circle, #ffff99 0%, #ffcc00 100%);
+    box-shadow: 0 0 40px rgba(255, 204, 0, 0.8);
+    animation: pulse 2s infinite;
+}
+
+.led-status-indicator.off {
+    background: #666;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+}
+
+.led-switch-container {
+    margin-top: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+/* Kontrol per LED */
+.led-controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.led-control-card {
+    background: var(--card-bg);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+}
+
+.led-control-card h3 {
+    margin-bottom: 15px;
+    color: var(--text-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.led-control-card .switch {
+    margin-left: auto;
+}
+
+/* Penjadwalan */
+.schedule-section {
+    background: var(--card-bg);
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    margin-top: 30px;
+}
+
+.schedule-controls {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.schedules-list {
+    margin-top: 20px;
+}
+
+.schedule-item {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-left: 4px solid var(--primary-color);
+}
+
+.schedule-item.disabled {
+    opacity: 0.6;
+    border-left-color: var(--secondary-color);
+}
+
+.schedule-info {
+    flex: 1;
+}
+
+.schedule-info h4 {
+    margin-bottom: 5px;
+    color: var(--text-color);
+}
+
+.schedule-details {
+    font-size: 0.9em;
+    color: #666;
+}
+
+.schedule-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    background-color: var(--card-bg);
+    margin: 5% auto;
+    padding: 30px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    position: relative;
+}
+
+.modal-content h3 {
+    margin-bottom: 20px;
+    color: var(--text-color);
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    position: absolute;
+    right: 20px;
+    top: 15px;
+    cursor: pointer;
+}
+
+.close:hover,
+.close:focus {
+    color: var(--text-color);
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid var(--border-color);
+    border-radius: 5px;
+    font-size: 16px;
+    margin-top: 5px;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+#scheduleForm .form-group {
+    margin-bottom: 20px;
+}
+
+#scheduleForm label {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--text-color);
+    font-weight: 500;
+}
+
+#scheduleForm input[type="checkbox"] {
+    width: auto;
+    margin-right: 8px;
+}
+
+/* Button kecil untuk schedule */
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 14px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .leds-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .led-controls {
+        grid-template-columns: 1fr;
+    }
+    
+    .schedule-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .schedule-actions {
+        width: 100%;
+        margin-top: 10px;
+        justify-content: flex-end;
+    }
+}
+

@@ -1,0 +1,25 @@
+# Redirect ke login jika belum terautentikasi
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Skip untuk file login dan assets
+    RewriteCond %{REQUEST_URI} ^/(login\.html|auth\.php|logout\.php|check_session\.php|css/|js/|config/) [NC]
+    RewriteRule ^ - [L]
+    
+    # Redirect ke login jika mengakses index.html tanpa session
+    # Note: PHP akan menangani ini, tapi ini sebagai backup
+</IfModule>
+
+# Security headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+</IfModule>
+
+# Prevent access to config files
+<FilesMatch "^(config|\.htaccess)">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+

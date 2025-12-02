@@ -1,0 +1,36 @@
+<?php
+/**
+ * Konfigurasi RADIUS Server
+ * Copy file ini ke radius_config.php dan sesuaikan dengan konfigurasi FreeRADIUS Anda
+ */
+
+// Alamat server RADIUS
+define('RADIUS_SERVER', 'localhost');
+
+// Port RADIUS (default: 1812 untuk authentication)
+define('RADIUS_PORT', 1812);
+
+// Shared secret untuk komunikasi dengan RADIUS server
+// HARUS sama dengan yang dikonfigurasi di /etc/freeradius/3.0/clients.conf
+define('RADIUS_SECRET', 'testing123');
+
+// Timeout untuk koneksi RADIUS (dalam detik)
+define('RADIUS_TIMEOUT', 3);
+
+// Maksimal percobaan
+define('RADIUS_MAX_TRIES', 3);
+
+// Path ke radclient (jika menggunakan metode fallback)
+// Biasanya: /usr/bin/radclient atau /usr/local/bin/radclient
+define('RADIUS_CLIENT_PATH', '/usr/bin/radclient');
+
+// Konstanta RADIUS (jika extension tidak tersedia)
+if (!defined('RADIUS_ACCESS_REQUEST')) {
+    define('RADIUS_ACCESS_REQUEST', 1);
+    define('RADIUS_ACCESS_ACCEPT', 2);
+    define('RADIUS_ACCESS_REJECT', 3);
+    define('RADIUS_USER_NAME', 1);
+    define('RADIUS_USER_PASSWORD', 2);
+}
+?>
+

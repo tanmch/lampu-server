@@ -1,0 +1,26 @@
+# Config files dengan informasi sensitif
+config/radius_config.php
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+/tmp/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Backup files
+*.bak
+*~
+

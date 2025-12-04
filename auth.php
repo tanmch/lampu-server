@@ -4,6 +4,10 @@ session_start();
 // Konfigurasi RADIUS
 require_once 'config/radius_config.php';
 
+// Konfigurasi database (untuk menyimpan akun dan riwayat login)
+// Pastikan Anda sudah membuat config/db_config.php dari db_config.php.example
+@require_once 'config/db_config.php';
+
 /**
  * Fungsi untuk autentikasi menggunakan RADIUS
  */
@@ -64,11 +68,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     // Autentikasi dengan RADIUS
-    if (authenticate_radius($username, $password)) {
+    $auth_success = authenticate_radius($username, $password);
+
+    // Jika fungsi logging DB tersedia, catat riwayat login
+    if (function_exists('log_login_history')) {
+        log_login_history($username, $auth_success, 'web');
+    }
+
+    if ($auth_success) {
         // Autentikasi berhasil
         $_SESSION['authenticated'] = true;
         $_SESSION['username'] = $username;
         $_SESSION['login_time'] = time();
+
+        // Simpan / update informasi akun di database jika fungsi tersedia
+        if (function_exists('upsert_radius_user')) {
+            upsert_radius_user($username);
+        }
         
         // Redirect ke halaman utama
         header('Location: index.php');

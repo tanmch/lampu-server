@@ -200,6 +200,81 @@ sudo tail -f /var/log/apache2/error.log
 - Cek log: `sudo tail -f /var/log/freeradius/radius.log`
 - Pastikan secret di config sesuai
 
+### Integrasi RADIUS Web Login dengan MySQL
+
+Untuk mencatat akun RADIUS yang berhasil login ke aplikasi web serta menyimpan riwayat login ke database MySQL, lakukan langkah berikut:
+
+1. Buat database dan user MySQL:
+
+```bash
+sudo mysql -u root -p
+```
+
+Di dalam console MySQL:
+
+```sql
+CREATE DATABASE lampu_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'lampu_user'@'localhost' IDENTIFIED BY 'password_yang_kuat';
+GRANT ALL PRIVILEGES ON lampu_db.* TO 'lampu_user'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+2. Buat tabel untuk menyimpan akun dan riwayat login:
+
+```sql
+USE lampu_db;
+
+-- Tabel akun RADIUS yang pernah login ke web
+CREATE TABLE users_radius (
+  id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  username      VARCHAR(191) NOT NULL UNIQUE,
+  created_at    DATETIME NOT NULL,
+  last_login_at DATETIME NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Tabel riwayat login web
+CREATE TABLE login_history (
+  id          BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  username    VARCHAR(191) NOT NULL,
+  success     TINYINT(1) NOT NULL DEFAULT 0,
+  source      VARCHAR(50) NOT NULL DEFAULT 'web',
+  ip_address  VARCHAR(45) DEFAULT NULL,
+  user_agent  TEXT,
+  login_time  DATETIME NOT NULL,
+  INDEX idx_username (username),
+  INDEX idx_login_time (login_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+3. Salin file konfigurasi database PHP:
+
+```bash
+cd /var/www/html/lampu-server/config
+cp db_config.php.example db_config.php
+```
+
+4. Edit `db_config.php` dan sesuaikan dengan kredensial database:
+
+```bash
+sudo nano /var/www/html/lampu-server/config/db_config.php
+```
+
+Contoh isi (sesuaikan password dan nama database):
+
+```php
+define('DB_HOST', '127.0.0.1');
+define('DB_NAME', 'lampu_db');
+define('DB_USER', 'lampu_user');
+define('DB_PASS', 'password_yang_kuat');
+```
+
+5. Setelah konfigurasi ini dibuat:
+
+- Setiap login web yang menggunakan akun RADIUS dan berhasil akan:
+  - Mengupdate / menambahkan data di tabel `users_radius` (waktu login terakhir).
+  - Mencatat satu baris riwayat login di tabel `login_history` (username, IP, user agent, waktu login, status sukses/gagal).
+- Jika koneksi database gagal, proses login web tetap berjalan (hanya logging yang dilewati), sehingga tidak mengganggu autentikasi utama melalui RADIUS.
+
 ### Session tidak bekerja:
 - Cek permissions: `sudo chmod 777 /var/lib/php/sessions`
 - Cek error log Apache

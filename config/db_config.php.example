@@ -1,0 +1,92 @@
+<?php
+/**
+ * Konfigurasi koneksi MySQL untuk pencatatan akun RADIUS dan riwayat login.
+ *
+ * Copy file ini menjadi db_config.php lalu sesuaikan nilai konfigurasinya:
+ *   cp config/db_config.php.example config/db_config.php
+ */
+
+define('DB_HOST', '127.0.0.1');
+define('DB_NAME', 'lampu_db');
+define('DB_USER', 'lampu_user');
+define('DB_PASS', 'password_yang_kuat');
+define('DB_CHARSET', 'utf8mb4');
+
+/**
+ * Mengembalikan instance PDO untuk koneksi database.
+ *
+ * @return PDO
+ */
+function get_db_connection(): PDO
+{
+    static $pdo = null;
+
+    if ($pdo === null) {
+        $dsn = 'mysql:host=' . DB_HOST . ';dbname=' . DB_NAME . ';charset=' . DB_CHARSET;
+
+        $options = [
+            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES   => false,
+        ];
+
+        $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
+    }
+
+    return $pdo;
+}
+
+/**
+ * Menyimpan / mengupdate informasi dasar akun RADIUS di tabel users_radius.
+ *
+ * @param string $username
+ * @return void
+ */
+function upsert_radius_user(string $username): void
+{
+    try {
+        $pdo = get_db_connection();
+
+        // Insert jika belum ada, update last_login_at jika sudah ada.
+        $sql = "INSERT INTO users_radius (username, created_at, last_login_at)
+                VALUES (:username, NOW(), NOW())
+                ON DUPLICATE KEY UPDATE last_login_at = VALUES(last_login_at)";
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([':username' => $username]);
+    } catch (Throwable $e) {
+        // Jangan menggagalkan login hanya karena error logging DB.
+        error_log('DB upsert_radius_user error: ' . $e->getMessage());
+    }
+}
+
+/**
+ * Mencatat riwayat login ke tabel login_history.
+ *
+ * @param string $username
+ * @param bool   $success
+ * @param string $source   Sumber login (misal: 'web')
+ * @return void
+ */
+function log_login_history(string $username, bool $success, string $source = 'web'): void
+{
+    try {
+        $pdo = get_db_connection();
+
+        $sql = "INSERT INTO login_history (username, success, source, ip_address, user_agent, login_time)
+                VALUES (:username, :success, :source, :ip_address, :user_agent, NOW())";
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([
+            ':username'   => $username,
+            ':success'    => $success ? 1 : 0,
+            ':source'     => $source,
+            ':ip_address' => $_SERVER['REMOTE_ADDR'] ?? '',
+            ':user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? '',
+        ]);
+    } catch (Throwable $e) {
+        error_log('DB log_login_history error: ' . $e->getMessage());
+    }
+}
+
+

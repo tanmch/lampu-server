@@ -188,6 +188,37 @@ sudo tail -f /var/log/apache2/error.log
 3. Pastikan ESP8266 terhubung ke WiFi dan MQTT broker
 4. Test kontrol lampu
 
+### Mode Testing Tanpa Autentikasi & Database
+
+Jika Anda hanya ingin menguji koneksi MQTT, antarmuka web, dan ESP8266 **tanpa RADIUS dan tanpa MySQL**, Anda dapat menggunakan halaman khusus mode testing:
+
+1. Pastikan Mosquitto sudah dikonfigurasi dengan `allow_anonymous true` (seperti di atas) dan berjalan.
+2. Pastikan file `js/config.js` mengarah ke broker yang benar, misalnya untuk server lokal:
+
+```javascript
+broker: 'ws://localhost:9001',
+// atau jika diakses dari perangkat lain di jaringan:
+// broker: 'ws://192.168.216.207:9001',
+```
+
+3. Akses halaman testing tanpa login:
+
+```text
+http://localhost/lampu-server/index_test.php
+```
+
+atau, jika diakses dari perangkat lain di jaringan:
+
+```text
+http://192.168.216.207/lampu-server/index_test.php
+```
+
+4. Pada mode ini:
+   - Tidak ada proses login RADIUS.
+   - Tidak ada pencatatan ke database MySQL.
+   - Halaman langsung menampilkan kontrol lampu dan mencoba terhubung ke MQTT.
+   - Sangat cocok untuk pengujian cepat (proof-of-concept) di lingkungan lab.
+
 ## Troubleshooting
 
 ### MQTT tidak terhubung:

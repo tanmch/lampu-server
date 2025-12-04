@@ -28,7 +28,7 @@ const char* ssid = "YOUR_WIFI_SSID";
 const char* password = "YOUR_WIFI_PASSWORD";
 
 // ========== KONFIGURASI MQTT ==========
-const char* mqtt_server = "YOUR_MQTT_BROKER_IP";  // IP address MQTT broker
+const char* mqtt_server = "YOUR_MQTT_BROKER_IP";  // IP address MQTT broker (contoh: "192.168.216.207")
 const int mqtt_port = 1883;
 const char* mqtt_client_id = "ESP8266_Lampu_Client";
 

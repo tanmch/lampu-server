@@ -6,10 +6,8 @@ const CONFIG = {
     // Konfigurasi MQTT Broker
     mqtt: {
         // Alamat broker MQTT (gunakan 'ws://' untuk WebSocket atau 'wss://' untuk secure WebSocket)
+        // Ganti dengan IP server Anda jika broker tidak di localhost
         broker: 'ws://localhost:9001',
-        
-        // Alternatif: jika menggunakan MQTT over WebSocket dengan path tertentu
-        // broker: 'ws://localhost:9001/mqtt',
         
         // Opsi koneksi MQTT
         options: {
@@ -36,9 +34,6 @@ const CONFIG = {
         // Topik untuk mengirim perintah warna
         color: 'lampu/color'
     },
-    
-    // Interval untuk memeriksa status session (dalam milidetik)
-    sessionCheckInterval: 60000, // 1 menit
     
     // Timeout untuk indikator status (dalam milidetik)
     statusTimeout: 5000 // 5 detik

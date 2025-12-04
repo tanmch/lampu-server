@@ -4,9 +4,6 @@
 
 // Inisialisasi saat halaman dimuat
 document.addEventListener('DOMContentLoaded', () => {
-    // Cek session terlebih dahulu
-    checkSession();
-    
     // Inisialisasi MQTT client
     mqttClient = new MQTTClient(CONFIG);
     
@@ -19,38 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Setup event listeners untuk kontrol
     setupControls();
-    
-    // Setup periodic session check
-    setInterval(checkSession, CONFIG.sessionCheckInterval);
 });
-
-/**
- * Cek status session
- */
-async function checkSession() {
-    try {
-        const response = await fetch('check_session.php');
-        const data = await response.json();
-        
-        if (!data.authenticated) {
-            // Session tidak valid, redirect ke login
-            if (data.timeout) {
-                window.location.href = 'login.html?error=timeout';
-            } else {
-                window.location.href = 'login.html';
-            }
-            return;
-        }
-        
-        // Update username display (jika belum diisi dari PHP)
-        const usernameDisplay = document.getElementById('usernameDisplay');
-        if (usernameDisplay && !usernameDisplay.textContent.includes('User:')) {
-            usernameDisplay.textContent = `User: ${data.username}`;
-        }
-    } catch (error) {
-        console.error('Error checking session:', error);
-    }
-}
 
 /**
  * Setup event listeners untuk semua kontrol

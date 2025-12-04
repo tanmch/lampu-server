@@ -1,7 +1,3 @@
-# Config files dengan informasi sensitif
-config/radius_config.php
-config/db_config.php
-
 # Logs
 *.log
 logs/
@@ -24,4 +20,3 @@ Thumbs.db
 # Backup files
 *.bak
 *~
-

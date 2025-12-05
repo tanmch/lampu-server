@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Kontrol Lampu LED</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box">
+            <h1>Kontrol Lampu LED</h1>
+            <h2>Masuk ke Sistem</h2>
+            <form id="loginForm" action="auth.php" method="POST">
+                <div class="form-group">
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" name="username" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" name="password" required autocomplete="current-password">
+                </div>
+                <div class="form-group">
+                    <label for="led_type">Tipe LED:</label>
+                    <select id="led_type" name="led_type" required>
+                        <option value="1led">1 LED RGB</option>
+                        <option value="4led">4 LED RGB</option>
+                    </select>
+                </div>
+                <div id="errorMessage" class="error-message"></div>
+                <button type="submit" class="btn btn-primary">Masuk</button>
+            </form>
+        </div>
+    </div>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const error = urlParams.get('error');
+        const errorMessage = document.getElementById('errorMessage');
+        
+        if (error === 'invalid') {
+            errorMessage.textContent = 'Username atau password salah';
+            errorMessage.classList.add('show');
+        } else if (error === 'empty') {
+            errorMessage.textContent = 'Username dan password harus diisi';
+            errorMessage.classList.add('show');
+        }
+    </script>
+</body>
+</html>
+

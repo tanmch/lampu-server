@@ -2,7 +2,7 @@ const CONFIG = {
     mqtt: {
         broker: 'ws://localhost:9001',
         options: {
-            clientId: 'lampu_web_client_' + Math.random().toString(16).substr(2, 8),
+            clientId: 'lampu_4led_web_client_' + Math.random().toString(16).substr(2, 8),
             username: '',
             password: '',
             clean: true,
@@ -11,12 +11,14 @@ const CONFIG = {
         }
     },
     topics: {
-        command: 'lampu/command',
+        commandPrefix: 'lampu/led',
+        allCommand: 'lampu/all/command',
+        intensityPrefix: 'lampu/intensity/',
+        colorPrefix: 'lampu/color/',
         status: 'lampu/status',
-        intensity: 'lampu/intensity',
-        color: 'lampu/color',
         config: 'lampu/config'
     },
+    numLEDs: 4,
     statusTimeout: 5000
 };
 

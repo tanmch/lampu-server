@@ -1,130 +1,181 @@
-# Panduan Setup Sederhana
+# Panduan Setup Lengkap
 
-## 1. Instalasi MQTT Broker (Mosquitto)
+## 1. Instalasi MariaDB
 
-### Debian/Ubuntu:
 ```bash
 sudo apt update
+sudo apt install mariadb-server mariadb-client
+sudo systemctl enable mariadb
+sudo systemctl start mariadb
+sudo mysql_secure_installation
+```
+
+## 2. Setup Database
+
+```bash
+sudo mysql -u root -p < database.sql
+```
+
+Atau manual:
+
+```bash
+sudo mysql -u root -p
+```
+
+```sql
+CREATE DATABASE lampu_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE lampu_db;
+CREATE TABLE user_configs (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(191) NOT NULL,
+    led_type ENUM('1led', '4led') NOT NULL,
+    config_data JSON NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_user_led (username, led_type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE USER 'lampu_user'@'localhost' IDENTIFIED BY 'lampu_password';
+GRANT ALL PRIVILEGES ON lampu_db.* TO 'lampu_user'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+## 3. Konfigurasi Database PHP
+
+Edit `config/db_config.php`:
+
+```php
+define('DB_HOST', '127.0.0.1');
+define('DB_NAME', 'lampu_db');
+define('DB_USER', 'lampu_user');
+define('DB_PASS', 'lampu_password');
+```
+
+## 4. Instalasi FreeRADIUS
+
+```bash
+sudo apt install freeradius freeradius-utils
+```
+
+Edit `/etc/freeradius/3.0/clients.conf`:
+
+```
+client localhost {
+    ipaddr = 127.0.0.1
+    secret = testing123
+    require_message_authenticator = no
+    nas_type = other
+}
+```
+
+Edit `/etc/freeradius/3.0/users`:
+
+```
+user1 Cleartext-Password := "password1"
+user2 Cleartext-Password := "password2"
+```
+
+Restart:
+
+```bash
+sudo systemctl restart freeradius
+sudo systemctl enable freeradius
+```
+
+Test:
+
+```bash
+radtest user1 password1 localhost 0 testing123
+```
+
+## 5. Instalasi MQTT Broker
+
+```bash
 sudo apt install mosquitto mosquitto-clients
 ```
 
-### CentOS/RHEL:
-```bash
-sudo yum install mosquitto mosquitto-clients
-```
+Edit `/etc/mosquitto/mosquitto.conf`:
 
-### Konfigurasi Mosquitto:
-
-1. Edit `/etc/mosquitto/mosquitto.conf`:
-```bash
-sudo nano /etc/mosquitto/mosquitto.conf
 ```
-
-Tambahkan:
-```
-# Port MQTT standar
 port 1883
 bind_address 0.0.0.0
-
-# Port WebSocket untuk browser
 listener 9001
 protocol websockets
 bind_address 0.0.0.0
-
-# Allow anonymous (untuk development)
 allow_anonymous true
-
-# Log
 log_dest file /var/log/mosquitto/mosquitto.log
-log_type error
-log_type warning
-log_type notice
-log_type information
 ```
 
-2. Buat direktori log:
 ```bash
 sudo mkdir -p /var/log/mosquitto
 sudo chown mosquitto:mosquitto /var/log/mosquitto
-```
-
-3. Restart Mosquitto:
-```bash
 sudo systemctl restart mosquitto
 sudo systemctl enable mosquitto
 ```
 
-4. Test MQTT:
+## 6. Deploy Aplikasi
+
 ```bash
-# Terminal 1: Subscribe
-mosquitto_sub -h localhost -t test/topic
-
-# Terminal 2: Publish
-mosquitto_pub -h localhost -t test/topic -m "Hello MQTT"
-```
-
-## 2. Deploy Aplikasi Web
-
-1. Copy file ke direktori web:
-```bash
-sudo cp -r /home/m/git/lampu-server/* /var/www/html/
-# atau ke subdirectory
-sudo cp -r /home/m/git/lampu-server/* /var/www/html/lampu/
-```
-
-2. Set permissions:
-```bash
+sudo cp -r lampu-server/* /var/www/html/
 sudo chown -R www-data:www-data /var/www/html/lampu-server
 sudo chmod -R 755 /var/www/html/lampu-server
 ```
 
-3. Edit konfigurasi MQTT:
-```bash
-sudo nano /var/www/html/lampu-server/js/config.js
-```
+## 7. Konfigurasi
 
-Ubah IP broker jika tidak di localhost:
+### RADIUS
+
+Edit `config/radius_config.php` sesuai setup Anda.
+
+### MQTT
+
+Edit `config/mqtt_config.php` jika broker tidak di localhost.
+
+Edit `js/config.js` dan `js/config_4led.js` untuk IP broker WebSocket:
+
 ```javascript
-broker: 'ws://192.168.216.207:9001',  // IP server Anda
+broker: 'ws://192.168.216.207:9001',
 ```
 
-## 3. Setup ESP8266
+## 8. Setup ESP8266
 
-1. Install Arduino IDE dan ESP8266 board support
-2. Install library:
-   - PubSubClient (via Library Manager)
-   - ArduinoJson (via Library Manager)
-3. Buka file `esp8266/lampu_control.ino`
-4. Edit konfigurasi:
-   - WiFi SSID dan password
-   - MQTT broker IP address
-5. Upload ke ESP8266
+### 1 LED
 
-## 4. Testing
+1. Buka `esp8266/lampu_control.ino`
+2. Edit WiFi dan MQTT settings
+3. Upload ke ESP8266
 
-1. Buka browser dan akses: `http://localhost/lampu-server/index.html`
-2. Pastikan ESP8266 terhubung ke WiFi dan MQTT broker
-3. Pastikan indikator MQTT di browser menunjukkan "Terhubung"
-4. Test kontrol lampu
+### 4 LED
+
+1. Buka `esp8266/lampu_control_4led.ino`
+2. Edit WiFi dan MQTT settings
+3. Sesuaikan pin LED jika perlu
+4. Upload ke ESP8266
+
+## 9. Testing
+
+1. Akses: `http://localhost/lampu-server/`
+2. Login dengan kredensial RADIUS
+3. Pilih tipe LED
+4. Setelah login, konfigurasi otomatis terkirim ke ESP8266
+5. Kontrol lampu dan simpan konfigurasi
 
 ## Troubleshooting
 
-### MQTT tidak terhubung dari browser:
-- Cek apakah Mosquitto berjalan: `sudo systemctl status mosquitto`
-- Cek port 9001: `netstat -tuln | grep 9001`
+### Database Error
+- Cek koneksi: `mysql -u lampu_user -p lampu_db`
+- Cek privileges user
+- Cek error log PHP: `tail -f /var/log/apache2/error.log`
+
+### RADIUS Error
+- Test: `radtest user1 password1 localhost 0 testing123`
+- Cek log: `sudo tail -f /var/log/freeradius/radius.log`
+
+### MQTT Error
+- Test broker: `mosquitto_sub -h localhost -t test`
+- Cek port: `netstat -tuln | grep 9001`
 - Cek firewall: `sudo ufw allow 9001`
-- Pastikan IP broker benar di `js/config.js`
 
-### ESP8266 tidak bisa terhubung ke MQTT:
-- Pastikan ESP8266 terhubung ke WiFi (cek Serial Monitor)
-- Pastikan IP MQTT broker benar di kode ESP8266
-- Pastikan Mosquitto listen di `0.0.0.0:1883` (bukan hanya localhost)
-- Cek firewall server: `sudo ufw allow 1883`
-- Test dari komputer lain: `mosquitto_pub -h 192.168.216.207 -t test -m "hello"`
-
-### Status lampu tidak update:
-- Pastikan ESP8266 subscribe ke topik yang benar
-- Cek Serial Monitor ESP8266 untuk melihat pesan yang diterima
-- Pastikan ESP8266 publish status secara berkala
-- Cek browser console untuk melihat pesan MQTT yang diterima
-
+### ESP8266 tidak menerima config
+- Pastikan subscribe ke `lampu/config`
+- Cek Serial Monitor
+- Test publish: `mosquitto_pub -h localhost -t lampu/config -m '{"config":{"state":true}}'`

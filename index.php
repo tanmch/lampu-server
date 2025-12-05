@@ -1,3 +1,17 @@
+<?php
+session_start();
+if (!isset($_SESSION['authenticated']) || $_SESSION['authenticated'] !== true) {
+    header('Location: login.html');
+    exit;
+}
+$session_timeout = 30 * 60;
+if (isset($_SESSION['login_time']) && (time() - $_SESSION['login_time']) > $session_timeout) {
+    session_destroy();
+    header('Location: login.html?error=timeout');
+    exit;
+}
+$_SESSION['login_time'] = time();
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -10,8 +24,11 @@
     <div class="container">
         <header>
             <h1>Kontrol Lampu LED</h1>
+            <div class="user-info">
+                <span id="usernameDisplay">User: <?php echo htmlspecialchars($_SESSION['username'] ?? 'User'); ?></span>
+                <a href="logout.php" class="btn btn-secondary">Keluar</a>
+            </div>
         </header>
-
         <main>
             <div class="status-section">
                 <h2>Status Lampu</h2>
@@ -22,10 +39,8 @@
                     <p id="statusText">Menghubungkan...</p>
                 </div>
             </div>
-
             <div class="control-section">
                 <h2>Kontrol Lampu</h2>
-                
                 <div class="control-group">
                     <h3>Power</h3>
                     <div class="button-group">
@@ -33,7 +48,6 @@
                         <button id="btnOff" class="btn btn-danger">Matikan</button>
                     </div>
                 </div>
-
                 <div class="control-group">
                     <h3>Intensitas Cahaya</h3>
                     <div class="slider-container">
@@ -46,7 +60,6 @@
                     </div>
                     <button id="btnSetIntensity" class="btn btn-primary">Set Intensitas</button>
                 </div>
-
                 <div class="control-group">
                     <h3>Warna Lampu</h3>
                     <div class="color-picker-container">
@@ -64,8 +77,10 @@
                     </div>
                     <button id="btnSetColor" class="btn btn-primary">Set Warna</button>
                 </div>
+                <div class="control-group">
+                    <button id="btnSaveConfig" class="btn btn-primary">Simpan Konfigurasi</button>
+                </div>
             </div>
-
             <div class="connection-status">
                 <div id="mqttStatus" class="status-badge disconnected">
                     <span class="status-dot"></span>
@@ -74,7 +89,6 @@
             </div>
         </main>
     </div>
-
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <script src="js/config.js"></script>
     <script src="js/mqtt-client.js"></script>

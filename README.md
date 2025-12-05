@@ -1,249 +1,251 @@
 # Aplikasi Web Kontrol Lampu LED dengan ESP8266
 
-Aplikasi web sederhana untuk mengontrol lampu LED yang terhubung ke perangkat ESP8266 melalui protokol MQTT. **Tidak memerlukan autentikasi atau database** - langsung bisa digunakan untuk testing dan pengembangan.
+Aplikasi web untuk mengontrol lampu LED yang terhubung ke perangkat ESP8266 melalui protokol MQTT, dengan sistem autentikasi menggunakan RADIUS dan penyimpanan konfigurasi per akun di MariaDB.
 
 ## Fitur
 
+- ✅ Autentikasi pengguna menggunakan FreeRADIUS
+- ✅ Penyimpanan konfigurasi per akun di MariaDB
+- ✅ Auto-load konfigurasi ke ESP8266 saat login
 - ✅ Kontrol lampu ON/OFF
 - ✅ Kontrol intensitas cahaya (0-100%)
 - ✅ Kontrol warna lampu (RGB)
+- ✅ Versi 1 LED dan 4 LED RGB
 - ✅ Indikator status lampu real-time
 - ✅ Antarmuka pengguna yang responsif dan modern
 - ✅ Komunikasi real-time melalui MQTT
-- ✅ Tidak memerlukan login atau autentikasi
 
 ## Persyaratan Sistem
 
-- Apache Web Server dengan PHP (opsional, hanya untuk hosting file HTML)
+- Apache Web Server dengan PHP 7.4 atau lebih baru
+- PHP dengan ekstensi:
+  - `pdo_mysql` (untuk koneksi MariaDB)
+  - `session`
+  - `json`
+- FreeRADIUS Server
+- MariaDB/MySQL Server
 - MQTT Broker (Mosquitto) dengan dukungan WebSocket
 - Browser modern dengan dukungan WebSocket
-- ESP8266 dengan koneksi WiFi
 
-## Instalasi Server
+## Instalasi
 
-### 1. Instalasi MQTT Broker (Mosquitto)
+### 1. Setup Database MariaDB
 
 ```bash
-# Debian/Ubuntu
-sudo apt update
-sudo apt install mosquitto mosquitto-clients
-
-# CentOS/RHEL
-sudo yum install mosquitto mosquitto-clients
+sudo mysql -u root -p < database.sql
 ```
 
-#### Konfigurasi Mosquitto untuk WebSocket
+Atau secara manual:
 
-Edit file `/etc/mosquitto/mosquitto.conf`:
+```bash
+sudo mysql -u root -p
+```
+
+```sql
+CREATE DATABASE lampu_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'lampu_user'@'localhost' IDENTIFIED BY 'lampu_password';
+GRANT ALL PRIVILEGES ON lampu_db.* TO 'lampu_user'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+### 2. Konfigurasi Database
+
+Edit `config/db_config.php`:
+
+```php
+define('DB_HOST', '127.0.0.1');
+define('DB_NAME', 'lampu_db');
+define('DB_USER', 'lampu_user');
+define('DB_PASS', 'lampu_password');
+```
+
+### 3. Setup FreeRADIUS
+
+Edit `/etc/freeradius/3.0/clients.conf`:
 
 ```
-# Port MQTT standar
+client localhost {
+    ipaddr = 127.0.0.1
+    secret = testing123
+    require_message_authenticator = no
+    nas_type = other
+}
+```
+
+Edit `/etc/freeradius/3.0/users`:
+
+```
+user1 Cleartext-Password := "password1"
+user2 Cleartext-Password := "password2"
+```
+
+Restart FreeRADIUS:
+
+```bash
+sudo systemctl restart freeradius
+```
+
+### 4. Setup MQTT Broker
+
+Edit `/etc/mosquitto/mosquitto.conf`:
+
+```
 port 1883
 bind_address 0.0.0.0
-
-# Port WebSocket untuk browser
 listener 9001
 protocol websockets
 bind_address 0.0.0.0
-
-# Allow anonymous connections (untuk development)
 allow_anonymous true
-
-# Log
-log_dest file /var/log/mosquitto/mosquitto.log
-log_type error
-log_type warning
-log_type notice
-log_type information
-```
-
-Buat direktori log:
-```bash
-sudo mkdir -p /var/log/mosquitto
-sudo chown mosquitto:mosquitto /var/log/mosquitto
 ```
 
 Restart Mosquitto:
+
 ```bash
 sudo systemctl restart mosquitto
-sudo systemctl enable mosquitto
 ```
 
-### 2. Deploy Aplikasi Web
-
-1. Copy file aplikasi ke direktori web server:
+### 5. Deploy Aplikasi
 
 ```bash
 sudo cp -r lampu-server/* /var/www/html/
-# atau ke subdirectory
-sudo cp -r lampu-server/* /var/www/html/lampu/
-```
-
-2. Set permissions:
-
-```bash
 sudo chown -R www-data:www-data /var/www/html/lampu-server
 sudo chmod -R 755 /var/www/html/lampu-server
 ```
 
-3. Edit konfigurasi MQTT di `js/config.js`:
+### 6. Konfigurasi
 
-```javascript
-broker: 'ws://192.168.216.207:9001',  // Ganti dengan IP server Anda
-```
-
-### 3. Konfigurasi Apache (Opsional)
-
-Jika menggunakan Apache, pastikan mod_headers diaktifkan:
-
-```bash
-sudo a2enmod headers
-sudo systemctl restart apache2
-```
-
-**Catatan:** Aplikasi ini adalah aplikasi web statis (HTML/CSS/JS), jadi bisa dihosting di web server apapun atau bahkan dibuka langsung dari file system.
-
-## Konfigurasi ESP8266
-
-### Library yang Diperlukan
-
-- PubSubClient (untuk MQTT) - Install via Library Manager di Arduino IDE
-- ArduinoJson (untuk parsing JSON) - Install via Library Manager di Arduino IDE
-
-### Setup Kode ESP8266
-
-1. Buka file `esp8266/lampu_control.ino` di Arduino IDE
-2. Edit konfigurasi WiFi:
-
-```cpp
-const char* ssid = "YOUR_WIFI_SSID";
-const char* password = "YOUR_WIFI_PASSWORD";
-```
-
-3. Edit konfigurasi MQTT:
-
-```cpp
-const char* mqtt_server = "192.168.216.207";  // IP server MQTT broker
-```
-
-4. Upload ke ESP8266
-
-### Topik MQTT
-
-- **Subscribe (ESP8266 menerima):**
-  - `lampu/command` - Menerima perintah ON/OFF
-  - `lampu/intensity` - Menerima perintah intensitas (0-100)
-  - `lampu/color` - Menerima perintah warna RGB
-
-- **Publish (ESP8266 mengirim):**
-  - `lampu/status` - Mengirim status lampu (JSON format)
-
-### Format Pesan
-
-**Command:**
-```
-ON
-OFF
-```
-
-**Intensity:**
-```json
-{"intensity": 75}
-```
-
-**Color:**
-```json
-{"color": {"r": 255, "g": 0, "b": 0}}
-```
-
-**Status (dari ESP8266):**
-```json
-{
-  "state": "on",
-  "intensity": 75,
-  "color": {"r": 255, "g": 0, "b": 0}
-}
-```
+Edit `config/radius_config.php` sesuai setup RADIUS Anda.
+Edit `config/mqtt_config.php` jika broker tidak di localhost.
+Edit `js/config.js` dan `js/config_4led.js` untuk IP broker WebSocket.
 
 ## Penggunaan
 
-1. Pastikan MQTT broker (Mosquitto) berjalan
-2. Pastikan ESP8266 terhubung ke WiFi dan MQTT broker
-3. Buka browser dan akses: `http://localhost/lampu-server/index.html` atau `http://192.168.216.207/lampu-server/index.html`
-4. Tunggu hingga indikator koneksi MQTT menunjukkan "Terhubung"
-5. Gunakan kontrol untuk mengatur lampu
+1. Akses aplikasi: `http://localhost/lampu-server/` (otomatis redirect ke login)
+2. Login dengan kredensial RADIUS
+3. Pilih tipe LED (1 LED atau 4 LED)
+4. Setelah login, konfigurasi user otomatis dikirim ke ESP8266
+5. Kontrol lampu melalui antarmuka web
+6. Klik "Simpan Konfigurasi" untuk menyimpan pengaturan
 
-## Pengujian
+## Struktur Database
 
-### Test MQTT Broker
+### Tabel `user_configs`
 
-```bash
-# Terminal 1: Subscribe ke topik
-mosquitto_sub -h localhost -t lampu/status
+- `id`: Primary key
+- `username`: Username dari RADIUS
+- `led_type`: '1led' atau '4led'
+- `config_data`: JSON konfigurasi lampu
+- `created_at`: Waktu dibuat
+- `updated_at`: Waktu diupdate
 
-# Terminal 2: Publish test message
-mosquitto_pub -h localhost -t lampu/command -m "ON"
+### Format Konfigurasi 1 LED
+
+```json
+{
+  "state": true,
+  "intensity": 75,
+  "color": {
+    "r": 255,
+    "g": 0,
+    "b": 0
+  }
+}
 ```
 
-### Test WebSocket MQTT
+### Format Konfigurasi 4 LED
 
-Buka browser console (F12) dan pastikan koneksi MQTT berhasil. Tidak ada error berarti koneksi berhasil.
-
-## Struktur File
-
+```json
+{
+  "leds": [
+    {
+      "state": true,
+      "intensity": 100,
+      "color": {"r": 255, "g": 0, "b": 0}
+    },
+    {
+      "state": false,
+      "intensity": 50,
+      "color": {"r": 0, "g": 255, "b": 0}
+    },
+    {
+      "state": true,
+      "intensity": 75,
+      "color": {"r": 0, "g": 0, "b": 255}
+    },
+    {
+      "state": true,
+      "intensity": 100,
+      "color": {"r": 255, "g": 255, "b": 255}
+    }
+  ]
+}
 ```
-lampu-server/
-├── index.html          # Halaman utama kontrol lampu
-├── css/
-│   └── style.css       # Stylesheet
-├── js/
-│   ├── config.js       # Konfigurasi MQTT
-│   ├── mqtt-client.js  # MQTT client
-│   └── controls.js     # Kontrol UI
-└── esp8266/
-    └── lampu_control.ino  # Kode ESP8266
-```
+
+## Topik MQTT
+
+### 1 LED
+
+- `lampu/command` - Perintah ON/OFF
+- `lampu/intensity` - Perintah intensitas
+- `lampu/color` - Perintah warna
+- `lampu/config` - Konfigurasi user (dikirim saat login)
+- `lampu/status` - Status dari ESP8266
+
+### 4 LED
+
+- `lampu/led1` sampai `lampu/led4` - Perintah per LED
+- `lampu/all/command` - Perintah semua LED
+- `lampu/intensity/1` sampai `lampu/intensity/4` - Intensitas per LED
+- `lampu/color/1` sampai `lampu/color/4` - Warna per LED
+- `lampu/config` - Konfigurasi user (dikirim saat login)
+- `lampu/status` - Status semua LED dari ESP8266
+
+## Konfigurasi ESP8266
+
+### 1 LED
+
+Edit `esp8266/lampu_control.ino`:
+- WiFi SSID dan password
+- MQTT broker IP
+- Pin LED (default: GPIO 5, 4, 0)
+
+### 4 LED
+
+Edit `esp8266/lampu_control_4led.ino`:
+- WiFi SSID dan password
+- MQTT broker IP
+- Pin LED (default: GPIO 5,4,0 untuk LED1; 2,14,12 untuk LED2; 13,15,16 untuk LED3; 1,3,10 untuk LED4)
+
+## Alur Kerja
+
+1. User login → Autentikasi RADIUS
+2. Jika berhasil → Load konfigurasi dari database
+3. Publish konfigurasi ke topik `lampu/config`
+4. ESP8266 menerima dan menerapkan konfigurasi
+5. User kontrol lampu → Perubahan real-time
+6. User simpan konfigurasi → Simpan ke database
 
 ## Troubleshooting
 
-### MQTT tidak terhubung dari browser
+### Database tidak terhubung
+- Cek kredensial di `config/db_config.php`
+- Pastikan user MariaDB memiliki privilege
+- Test koneksi: `mysql -u lampu_user -p lampu_db`
 
-1. Pastikan Mosquitto berjalan: `sudo systemctl status mosquitto`
-2. Cek port WebSocket (9001) terbuka: `netstat -tuln | grep 9001`
-3. Pastikan IP broker di `js/config.js` benar
-4. Cek firewall: `sudo ufw allow 9001`
-5. Buka browser console (F12) untuk melihat error detail
+### RADIUS tidak bekerja
+- Test: `radtest user1 password1 localhost 0 testing123`
+- Cek log: `sudo tail -f /var/log/freeradius/radius.log`
 
-### ESP8266 tidak bisa terhubung ke MQTT
-
-1. Pastikan ESP8266 terhubung ke WiFi (cek Serial Monitor)
-2. Pastikan IP MQTT broker benar di kode ESP8266
-3. Pastikan Mosquitto listen di `0.0.0.0:1883` (bukan hanya localhost)
-4. Cek firewall server: `sudo ufw allow 1883`
-5. Test dari komputer lain: `mosquitto_pub -h 192.168.216.207 -t test -m "hello"`
-
-### Status lampu tidak update
-
-1. Pastikan ESP8266 subscribe ke topik yang benar
-2. Cek Serial Monitor ESP8266 untuk melihat pesan yang diterima
-3. Pastikan ESP8266 publish status secara berkala (setiap 5 detik)
-4. Cek browser console untuk melihat pesan MQTT yang diterima
+### Konfigurasi tidak terkirim ke ESP8266
+- Pastikan ESP8266 subscribe ke `lampu/config`
+- Cek Serial Monitor ESP8266
+- Test publish manual: `mosquitto_pub -h localhost -t lampu/config -m '{"config":{"state":true}}'`
 
 ## Keamanan
 
-**PENTING:** Aplikasi ini tidak memiliki autentikasi dan cocok untuk:
-- Testing dan pengembangan
-- Jaringan lokal yang terpercaya
-- Prototipe dan demonstrasi
-
-**Untuk production, disarankan:**
-1. Menambahkan autentikasi (login)
-2. Menggunakan HTTPS (SSL/TLS)
-3. Mengaktifkan autentikasi MQTT
-4. Menggunakan WSS (WebSocket Secure) untuk MQTT
-5. Membatasi akses dengan firewall
-
-## Lisensi
-
-Aplikasi ini dibuat untuk keperluan edukasi dan dapat digunakan secara bebas.
-
+Untuk production:
+1. Gunakan HTTPS
+2. Aktifkan autentikasi MQTT
+3. Gunakan WSS untuk WebSocket
+4. Ubah shared secret RADIUS
+5. Gunakan password kuat untuk database

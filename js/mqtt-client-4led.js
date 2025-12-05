@@ -1,4 +1,4 @@
-class MQTTClient {
+class MQTTClient4LED {
     constructor(config) {
         this.config = config;
         this.client = null;
@@ -68,19 +68,14 @@ class MQTTClient {
         if (topic === this.config.topics.status) {
             try {
                 const status = JSON.parse(message);
-                this.updateLightStatus(status);
+                this.updateStatus(status);
             } catch (e) {
-                const status = {
-                    state: message.toLowerCase(),
-                    intensity: null,
-                    color: null
-                };
-                this.updateLightStatus(status);
+                console.error('Error parsing status JSON:', e);
             }
         }
     }
     
-    updateLightStatus(status) {
+    updateStatus(status) {
         if (this.onStatusUpdate) {
             this.onStatusUpdate(status);
         }
@@ -92,40 +87,56 @@ class MQTTClient {
         }
     }
     
-    publishCommand(command, value = null) {
+    publishLEDCommand(ledIndex, command) {
         if (!this.client || !this.connected) {
             console.error('MQTT client tidak terhubung');
             return false;
         }
-        const message = value !== null ? JSON.stringify({ command, value }) : command;
-        const topic = this.config.topics.command;
-        this.client.publish(topic, message, { qos: 1 }, (err) => {
+        const topic = this.config.topics.commandPrefix + ledIndex;
+        this.client.publish(topic, command, { qos: 1 }, (err) => {
             if (err) {
-                console.error('Error publishing command:', err);
+                console.error('Error publishing LED command:', err);
             } else {
-                console.log('Command published:', topic, message);
+                console.log('LED command published:', topic, command);
             }
         });
         return true;
     }
     
-    publishIntensity(intensity) {
+    publishAllCommand(command) {
+        if (!this.client || !this.connected) {
+            console.error('MQTT client tidak terhubung');
+            return false;
+        }
+        const topic = this.config.topics.allCommand;
+        this.client.publish(topic, command, { qos: 1 }, (err) => {
+            if (err) {
+                console.error('Error publishing all command:', err);
+            } else {
+                console.log('All command published:', topic, command);
+            }
+        });
+        return true;
+    }
+    
+    publishLEDIntensity(ledIndex, intensity) {
         if (!this.client || !this.connected) {
             console.error('MQTT client tidak terhubung');
             return false;
         }
         const message = JSON.stringify({ intensity: parseInt(intensity) });
-        this.client.publish(this.config.topics.intensity, message, { qos: 1 }, (err) => {
+        const topic = this.config.topics.intensityPrefix + ledIndex;
+        this.client.publish(topic, message, { qos: 1 }, (err) => {
             if (err) {
-                console.error('Error publishing intensity:', err);
+                console.error('Error publishing LED intensity:', err);
             } else {
-                console.log('Intensity published:', message);
+                console.log('LED intensity published:', topic, message);
             }
         });
         return true;
     }
     
-    publishColor(color) {
+    publishLEDColor(ledIndex, color) {
         if (!this.client || !this.connected) {
             console.error('MQTT client tidak terhubung');
             return false;
@@ -138,11 +149,12 @@ class MQTTClient {
                 b: rgb.b
             }
         });
-        this.client.publish(this.config.topics.color, message, { qos: 1 }, (err) => {
+        const topic = this.config.topics.colorPrefix + ledIndex;
+        this.client.publish(topic, message, { qos: 1 }, (err) => {
             if (err) {
-                console.error('Error publishing color:', err);
+                console.error('Error publishing LED color:', err);
             } else {
-                console.log('Color published:', message);
+                console.log('LED color published:', topic, message);
             }
         });
         return true;
@@ -166,3 +178,4 @@ class MQTTClient {
 }
 
 let mqttClient = null;
+
